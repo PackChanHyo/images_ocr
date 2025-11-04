@@ -2,5 +2,5 @@ streamlit
 Pillow
 pandas
 openpyxl
-google-genai
+google-generativeai
 python-dotenv

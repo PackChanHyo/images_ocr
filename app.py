@@ -1,8 +1,7 @@
 import streamlit as st
 from PIL import Image
 import pandas as pd
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 import json
 import io
 import os
@@ -22,19 +21,8 @@ st.set_page_config(
 def extract_with_gemini(image, api_key):
     """Gemini AI를 사용하여 이미지에서 고객 정보 추출"""
     try:
-        # 새로운 Google GenAI SDK 방식
-        client = genai.Client(api_key=api_key)
-
-        # PIL Image를 bytes로 변환
-        img_byte_arr = io.BytesIO()
-        image.save(img_byte_arr, format='PNG')
-        img_bytes = img_byte_arr.getvalue()
-
-        # 이미지 Part 생성
-        image_part = types.Part.from_bytes(
-            data=img_bytes,
-            mime_type='image/png'
-        )
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
         prompt = """
 이 이미지에서 고객 정보를 추출해주세요.
@@ -56,11 +44,7 @@ def extract_with_gemini(image, api_key):
 8. 반드시 전화번호, 고객명, 비고 순서로 반환
 """
 
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
-            contents=[image_part, prompt]
-        )
-
+        response = model.generate_content([prompt, image])
         text = response.text.strip()
 
         # JSON 추출
