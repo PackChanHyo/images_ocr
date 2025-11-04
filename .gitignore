@@ -1,0 +1,29 @@
+# 환경 변수 파일 (API 키 보호)
+.env
+
+# SSL 인증서
+*.pem
+*.key
+*.crt
+
+# Python 캐시
+__pycache__/
+*.pyc
+*.pyo
+
+# 가상환경
+venv/
+env/
+
+# 업로드된 파일
+uploads/
+*.jpg
+*.png
+*.jpeg
+
+# 다운로드된 파일
+*.csv
+*.xlsx
+
+# 백업 파일
+*_backup.py
