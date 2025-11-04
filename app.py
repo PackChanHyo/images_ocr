@@ -22,7 +22,7 @@ def extract_with_gemini(image, api_key):
     """Gemini AI를 사용하여 이미지에서 고객 정보 추출"""
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-flash-latest')
 
         prompt = """
 이 이미지에서 고객 정보를 추출해주세요.
