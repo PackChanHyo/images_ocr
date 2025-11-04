@@ -1,7 +1,5 @@
 import streamlit as st
-import pytesseract
 from PIL import Image
-import re
 import pandas as pd
 from google import genai
 from google.genai import types
@@ -90,43 +88,34 @@ st.markdown("이미지에서 텍스트를 자동으로 추출합니다. (한글/
 # 사이드바 - 설정
 st.sidebar.header("설정")
 
-# AI 모드 옵션
-st.sidebar.markdown("### 🤖 AI 모드 (추천)")
-
 # 환경 변수에서 API 키 가져오기
 default_api_key = os.getenv("GEMINI_API_KEY", "")
 
-use_ai_mode = st.sidebar.checkbox(
-    "AI 기반 추출 활성화 (Gemini)",
-    value=bool(default_api_key),  # API 키가 있으면 자동 활성화
-    help="더 정확한 이름 추출을 위해 Gemini AI 사용"
-)
+st.sidebar.markdown("### 🤖 Gemini API 키")
 
-gemini_api_key = ""
-if use_ai_mode:
-    if default_api_key:
-        gemini_api_key = default_api_key
-        st.sidebar.success("✅ API 키가 .env 파일에서 로드되었습니다")
+if default_api_key:
+    gemini_api_key = default_api_key
+    st.sidebar.success("✅ API 키가 환경 변수에서 로드되었습니다")
+else:
+    gemini_api_key = st.sidebar.text_input(
+        "Gemini API 키 입력",
+        type="password",
+        help="https://aistudio.google.com/app/apikey 에서 발급"
+    )
+    if gemini_api_key:
+        st.sidebar.success("✅ API 키가 설정되었습니다")
     else:
-        gemini_api_key = st.sidebar.text_input(
-            "Gemini API 키",
-            type="password",
-            help="https://aistudio.google.com/app/apikey 에서 발급"
-        )
-        if gemini_api_key:
-            st.sidebar.success("✅ API 키가 설정되었습니다")
-        else:
-            st.sidebar.warning("⚠️ API 키를 입력하거나 .env 파일에 추가하세요")
+        st.sidebar.warning("⚠️ API 키를 입력해주세요")
 
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 사용 방법")
 st.sidebar.markdown("""
-1. 이미지 파일을 업로드하세요
-2. AI 모드를 활성화하고 API 키 입력 (권장)
+1. Gemini API 키를 입력하세요
+2. 이미지 파일을 업로드하세요
 3. 자동으로 고객 정보가 추출됩니다
 4. 결과를 확인하고 다운로드하세요
 
-**💡 팁**: AI 모드는 이름 추출 정확도가 훨씬 높습니다!
+**💡 팁**: Gemini AI가 표 형식의 데이터도 정확하게 추출합니다!
 """)
 
 # 메인 영역 - 파일 업로더
@@ -150,14 +139,14 @@ if uploaded_file is not None:
     with col2:
         st.subheader("📝 추출된 정보")
 
-        # AI 모드
-        if use_ai_mode and gemini_api_key:
+        # Gemini API 키가 있는 경우
+        if gemini_api_key:
             # 파일 이름을 기준으로 캐시 키 생성
             cache_key = f"extracted_data_{uploaded_file.name}"
 
             # 이미 추출된 데이터가 없으면 추출
             if cache_key not in st.session_state:
-                with st.spinner("🤖 AI로 정보 추출 중..."):
+                with st.spinner("🤖 Gemini AI로 정보 추출 중..."):
                     data = extract_with_gemini(image, gemini_api_key)
                     if data:
                         st.session_state[cache_key] = data
@@ -202,57 +191,16 @@ if uploaded_file is not None:
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
 
-        # 일반 모드 (Tesseract)
+        # API 키가 없는 경우
         else:
-            with st.spinner("텍스트 추출 중..."):
-                try:
-                    # OCR 실행
-                    extracted_text = pytesseract.image_to_string(
-                        image,
-                        lang='kor+eng',
-                        config=r'--oem 3 --psm 3'
-                    )
-
-                    if extracted_text.strip():
-                        # 원본 텍스트 표시
-                        st.text_area(
-                            "추출된 텍스트",
-                            extracted_text,
-                            height=300,
-                            help="AI 모드를 활성화하면 자동으로 구조화된 데이터를 얻을 수 있습니다"
-                        )
-
-                        st.info("💡 **AI 모드를 활성화**하면 이름과 전화번호를 자동으로 분리합니다!")
-
-                        # 텍스트 파일 다운로드
-                        st.download_button(
-                            label="📥 텍스트 파일로 다운로드",
-                            data=extracted_text,
-                            file_name=f"extracted_text_{uploaded_file.name.split('.')[0]}.txt",
-                            mime="text/plain"
-                        )
-
-                    else:
-                        st.warning("⚠️ 텍스트를 찾을 수 없습니다.")
-
-                except Exception as e:
-                    st.error(f"❌ OCR 오류: {str(e)}")
-                    st.info("""
-**Tesseract가 설치되지 않은 경우:**
-
-macOS:
-```
-brew install tesseract tesseract-lang
-```
-
-Ubuntu/Debian:
-```
-sudo apt-get install tesseract-ocr tesseract-ocr-kor
-```
-
-Windows:
-- https://github.com/UB-Mannheim/tesseract/wiki 에서 설치
-                    """)
+            st.warning("⚠️ Gemini API 키를 입력해주세요")
+            st.info("""
+**API 키 발급 방법:**
+1. https://aistudio.google.com/app/apikey 접속
+2. "Create API Key" 클릭
+3. 생성된 키를 복사하여 좌측 사이드바에 입력
+4. 무료 할당량: 하루 1,500회
+            """)
 
 else:
     st.info("👆 이미지 파일을 업로드하여 시작하세요")
@@ -260,20 +208,21 @@ else:
     st.markdown("---")
     st.subheader("💡 사용 팁")
     st.markdown("""
-    **AI 모드 (권장):**
-    - Gemini AI가 자동으로 이름과 전화번호를 정확하게 추출
-    - 표 형식, 손글씨도 잘 인식
+    **Gemini AI 기능:**
+    - 이미지에서 자동으로 이름과 전화번호를 정확하게 추출
+    - 표 형식, 복잡한 레이아웃도 잘 인식
+    - 구조화된 데이터로 자동 변환 (CSV/Excel)
     - 무료 할당량: 하루 1,500회
 
-    **일반 모드:**
-    - Tesseract OCR 사용
-    - 텍스트만 추출 (구조화 안됨)
-    - 완전 무료
+    **지원 형식:**
+    - PNG, JPG, JPEG 이미지
+    - 한글 및 영문 텍스트
+    - 표 형식 데이터
     """)
 
 # 푸터
 st.markdown("---")
 st.markdown(
-    "<div style='text-align: center; color: gray;'>Made with Streamlit, Tesseract OCR & Gemini AI</div>",
+    "<div style='text-align: center; color: gray;'>Made with Streamlit & Gemini AI</div>",
     unsafe_allow_html=True
 )
